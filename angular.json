@@ -30,7 +30,16 @@
             "outputMode": "server",
             "ssr": {
               "entry": "src/server.ts"
-            }
+            },
+            "allowedCommonJsDependencies": [
+              "@apollo/utils.createhash",
+              "@apollo/utils.usagereporting",
+              "async-retry",
+              "node-abort-controller",
+              "@apollo/protobufjs/minimal",
+              "whatwg-url",
+              "encoding"
+            ]
           },
           "configurations": {
             "production": {
