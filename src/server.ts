@@ -12,6 +12,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolvers } from './resolvers';
 import typeDefs from './typeDefs';
+import { Server } from 'node:http';
 
 const serverDistFolder = dirname(fileURLToPath(import.meta.url));
 const browserDistFolder = resolve(serverDistFolder, '../browser');
@@ -21,18 +22,18 @@ const angularApp = new AngularNodeAppEngine();
 
 type MyContext = {};
 
-const server = new ApolloServer<MyContext>({
+const apolloServer = new ApolloServer<MyContext>({
   typeDefs,
   resolvers,
 });
 
-await server.start();
+await apolloServer.start();
 
 app.use(
   '/graphql',
   cors<cors.CorsRequest>(),
   express.json(),
-  expressMiddleware(server)
+  expressMiddleware(apolloServer)
 );
 
 /**
@@ -58,14 +59,28 @@ app.use('/**', (req, res, next) => {
     .catch(next);
 });
 
-/**
- * Start the server if this module is the main entry point.
- * The server listens on the port defined by the `PORT` environment variable, or defaults to 4000.
- */
+let httpServer: Server;
+
 if (isMainModule(import.meta.url)) {
-  const port = process.env['PORT'] || 4000;
-  app.listen(port, () => {
-    console.log(`Node Express server listening on http://localhost:${port}`);
+  httpServer = app.listen(8080, () => {
+    console.log(`Node Express server listening on http://localhost:8080`);
+  });
+}
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT signal. Shutting down...');
+  shutdownServer();
+});
+
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM signal. Shutting down...');
+  shutdownServer();
+});
+
+function shutdownServer() {
+  httpServer?.close(() => {
+    console.log('Server shut down.');
+    process.exit(0);
   });
 }
 
