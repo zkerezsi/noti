@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { resolvers } from './resolvers';
 import typeDefs from './typeDefs';
 import { Server } from 'node:http';
+import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled';
 
 const serverDistFolder = dirname(fileURLToPath(import.meta.url));
 const browserDistFolder = resolve(serverDistFolder, '../browser');
@@ -25,6 +26,10 @@ type MyContext = {};
 const apolloServer = new ApolloServer<MyContext>({
   typeDefs,
   resolvers,
+  plugins:
+    process.env['NODE_ENV'] === 'production'
+      ? [ApolloServerPluginLandingPageDisabled()]
+      : undefined,
 });
 
 await apolloServer.start();
