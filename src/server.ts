@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import {
   AngularNodeAppEngine,
   createNodeRequestHandler,
@@ -12,7 +13,6 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolvers } from './resolvers';
 import typeDefs from './typeDefs';
-import { Server } from 'node:http';
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled';
 
 const serverDistFolder = dirname(fileURLToPath(import.meta.url));
@@ -64,29 +64,20 @@ app.use('/**', (req, res, next) => {
     .catch(next);
 });
 
-let httpServer: Server;
-
 if (isMainModule(import.meta.url)) {
-  httpServer = app.listen(8080, () => {
+  const httpServer = app.listen(8080, () => {
     console.log(`Node Express server listening on http://localhost:8080`);
   });
-}
 
-process.on('SIGINT', () => {
-  console.log('Received SIGINT signal. Shutting down...');
-  shutdownServer();
-});
+  const shutdownServer = (signal: NodeJS.Signals) => {
+    console.log(`Received ${signal} signal. Shutting down...`);
+    httpServer.close(() => {
+      console.log('Server shut down.');
+    });
+  };
 
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM signal. Shutting down...');
-  shutdownServer();
-});
-
-function shutdownServer() {
-  httpServer?.close(() => {
-    console.log('Server shut down.');
-    process.exit(0);
-  });
+  process.on('SIGINT', shutdownServer);
+  process.on('SIGTERM', shutdownServer);
 }
 
 /**
