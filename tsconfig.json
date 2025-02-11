@@ -10,16 +10,14 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
-    "isolatedModules": false,
+    "isolatedModules": true,
     "esModuleInterop": true,
-    "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "moduleResolution": "bundler",
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
-    "lib": ["esnext.asynciterable", "dom"],
-    "allowSyntheticDefaultImports": true
+    "lib": ["esnext.asynciterable", "dom"]
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

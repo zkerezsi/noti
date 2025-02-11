@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import {
   AngularNodeAppEngine,
   createNodeRequestHandler,
@@ -21,9 +20,7 @@ const browserDistFolder = resolve(serverDistFolder, '../browser');
 const app = express();
 const angularApp = new AngularNodeAppEngine();
 
-type MyContext = {};
-
-const apolloServer = new ApolloServer<MyContext>({
+const apolloServer = new ApolloServer<{}>({
   typeDefs,
   resolvers,
   plugins:
@@ -65,8 +62,9 @@ app.use('/**', (req, res, next) => {
 });
 
 if (isMainModule(import.meta.url)) {
-  const httpServer = app.listen(8080, () => {
-    console.log(`Node Express server listening on http://localhost:8080`);
+  const port = process.env['PORT'] ?? 4200;
+  const httpServer = app.listen(port, () => {
+    console.log(`Node Express server listening on http://localhost:${port}`);
   });
 
   const shutdownServer = (signal: NodeJS.Signals) => {
