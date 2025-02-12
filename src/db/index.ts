@@ -4,11 +4,12 @@ import {
   Migrator,
   PostgresDialect,
 } from 'kysely';
-import path from 'path';
+import path from 'node:path';
 import { Pool } from 'pg';
 import { promises as fs } from 'node:fs';
+import { Database } from './types.js';
 
-const db = new Kysely<Database>({
+export const db = new Kysely<Database>({
   dialect: new PostgresDialect({
     pool: new Pool({
       connectionString: process.env['DATABASE_URL'],
@@ -21,7 +22,7 @@ const migrator = new Migrator({
   provider: new FileMigrationProvider({
     fs,
     path,
-    migrationFolder: path.join(__dirname, 'some/path/to/migrations'),
+    migrationFolder: 'src/db/migrations',
   }),
 });
 
@@ -42,5 +43,3 @@ if (error) {
   console.error(error);
   process.exit(1);
 }
-
-await db.destroy();

@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { resolvers } from './resolvers';
 import typeDefs from './typeDefs';
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled';
+import { db } from './db';
 
 const serverDistFolder = dirname(fileURLToPath(import.meta.url));
 const browserDistFolder = resolve(serverDistFolder, '../browser');
@@ -71,6 +72,9 @@ if (isMainModule(import.meta.url)) {
     console.log(`Received ${signal} signal. Shutting down...`);
     httpServer.close(() => {
       console.log('Server shut down.');
+    });
+    db.destroy().then(() => {
+      console.log('Disconnected from database.');
     });
   };
 

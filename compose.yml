@@ -4,7 +4,7 @@ services:
     environment:
       PORT: 4200
       NODE_ENV: development
-      DATABASE_URL: postgresql://user:password@localhost/db:5432
+      DATABASE_URL: postgresql://user:password@db:5432/db
     ports:
       - 4200:4200
 
