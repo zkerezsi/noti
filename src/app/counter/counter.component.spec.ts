@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { ApolloTestingModule } from 'apollo-angular/testing';
 import { CounterComponent } from './counter.component';
 
 describe('CounterComponent', () => {
@@ -8,9 +8,8 @@ describe('CounterComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [CounterComponent]
-    })
-    .compileComponents();
+      imports: [CounterComponent, ApolloTestingModule],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(CounterComponent);
     component = fixture.componentInstance;
@@ -19,5 +18,12 @@ describe('CounterComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should render title', () => {
+    const fixture = TestBed.createComponent(CounterComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('h1')?.textContent).toContain('Hello world!');
   });
 });

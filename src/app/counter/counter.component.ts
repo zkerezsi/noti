@@ -8,13 +8,17 @@ import { Apollo, gql } from 'apollo-angular';
   styleUrl: './counter.component.css',
 })
 export class CounterComponent implements OnInit {
+  #apollo: Apollo;
+
   count = signal(0);
   message = signal('');
 
-  constructor(private readonly apollo: Apollo) {}
+  constructor(apollo: Apollo) {
+    this.#apollo = apollo;
+  }
 
   ngOnInit() {
-    this.apollo
+    this.#apollo
       .query({
         query: gql`
           query ExampleQuery {
