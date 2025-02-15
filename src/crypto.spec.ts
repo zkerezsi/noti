@@ -4,65 +4,54 @@ import {
   exportX25519KeyPair,
   generateX25519KeyPair,
   importX25519KeyPair,
-  parseNotiKeyPair,
+  NotiKeyPair,
 } from './crypto';
 
 describe('EncryptorDecryptor', () => {
   it('should encrypt and decrypt a message with generated key pair', async () => {
-    const [x25519KeyPair, err] = await generateX25519KeyPair();
-    expect(err).toBeNull();
-    if (err !== null) return;
+    const x25519KeyPair = await generateX25519KeyPair();
+    if (!x25519KeyPair.ok) throw x25519KeyPair.error;
 
-    const [sharedAesGcmKey, err1] = await deriveSharedAesGcmKey(x25519KeyPair);
-    expect(err1).toBeNull();
-    if (err1 !== null) return;
+    const sharedAesGcmKey = await deriveSharedAesGcmKey(x25519KeyPair.value);
+    if (!sharedAesGcmKey.ok) throw sharedAesGcmKey.error;
 
-    const ed = new EncryptorDecryptor(sharedAesGcmKey);
-    const [em, err2] = await ed.encrypt('Hello');
-    expect(err2).toBeNull();
-    if (err2 !== null) return;
+    const ed = new EncryptorDecryptor(sharedAesGcmKey.value);
+    const em = await ed.encrypt('Hello');
+    if (!em.ok) throw em.error;
 
-    const [str, err3] = await ed.decrypt(em);
-    expect(err3).toBeNull();
-    if (err3 !== null) return;
+    const data = await ed.decrypt(em.value);
+    if (!data.ok) throw data.error;
 
-    expect(str).toBe('Hello');
+    expect(data.value).toBe('Hello');
   });
 
   it('should encrypt and decrypt a message with an exported then imported key pair', async () => {
-    const [x25519KeyPair, err] = await generateX25519KeyPair();
-    expect(err).toBeNull();
-    if (err !== null) return;
+    const x25519KeyPair = await generateX25519KeyPair();
+    if (!x25519KeyPair.ok) throw x25519KeyPair.error;
 
-    const [notiKeyPair, err1] = await exportX25519KeyPair(x25519KeyPair);
-    expect(err1).toBeNull();
-    if (err1 !== null) return;
+    const notiKeyPair = await exportX25519KeyPair(x25519KeyPair.value);
+    if (!notiKeyPair.ok) throw notiKeyPair.error;
 
-    const [parsedNotiKeyPair, err2] = parseNotiKeyPair(notiKeyPair);
-    expect(err2).toBeNull();
-    if (err2 !== null) return;
+    const parsedNotiKeyPair = NotiKeyPair.safeParse(notiKeyPair.value);
+    if (!parsedNotiKeyPair.success) throw parsedNotiKeyPair.error;
 
-    const [importedX25519KeyPair, err3] = await importX25519KeyPair(
-      parsedNotiKeyPair
+    const importedX25519KeyPair = await importX25519KeyPair(
+      parsedNotiKeyPair.data
     );
-    expect(err3).toBeNull();
-    if (err3 !== null) throw err3;
+    if (!importedX25519KeyPair.ok) throw importedX25519KeyPair.error;
 
-    const [sharedAesGcmKey, err4] = await deriveSharedAesGcmKey(
-      importedX25519KeyPair
+    const sharedAesGcmKey = await deriveSharedAesGcmKey(
+      importedX25519KeyPair.value
     );
-    expect(err4).toBeNull();
-    if (err4 !== null) return;
+    if (!sharedAesGcmKey.ok) throw sharedAesGcmKey.error;
 
-    const ed = new EncryptorDecryptor(sharedAesGcmKey);
-    const [em, err5] = await ed.encrypt('Hello');
-    expect(err5).toBeNull();
-    if (err5 !== null) return;
+    const ed = new EncryptorDecryptor(sharedAesGcmKey.value);
+    const em = await ed.encrypt('Hello');
+    if (!em.ok) throw em.error;
 
-    const [str, err6] = await ed.decrypt(em);
-    expect(err6).toBeNull();
-    if (err6 !== null) return;
+    const data = await ed.decrypt(em.value);
+    if (!data.ok) throw data.error;
 
-    expect(str).toBe('Hello');
+    expect(data.value).toBe('Hello');
   });
 });

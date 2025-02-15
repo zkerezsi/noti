@@ -1,15 +1,31 @@
-import { ensureError, Errable } from './errable';
+import { z } from 'zod';
+import {
+  bytesToBase64,
+  base64ToBytes,
+  ok,
+  err,
+  Result,
+  ensureError,
+} from './utils';
 
-export type NotiKeyPair = {
-  type: 'X25519';
-  spki_public_key: string;
-  pkcs8_private_key: string;
-};
+export type NotiKeyPair = z.infer<typeof NotiKeyPair>;
+export const NotiKeyPair = z.object({
+  algorithm: z.literal('X25519'),
+  publicKey: z.object({
+    format: z.literal('spki'),
+    value: z.string(),
+  }),
+  privateKey: z.object({
+    format: z.literal('pkcs8'),
+    value: z.string(),
+  }),
+});
 
-export type EncryptedMessage = {
-  ciphertext: string;
-  iv: string;
-};
+export type EncryptedMessage = z.infer<typeof EncryptedMessage>;
+export const EncryptedMessage = z.object({
+  ciphertext: z.string(),
+  iv: z.string(),
+});
 
 export class EncryptorDecryptor {
   #sharedAesGcmKey: CryptoKey;
@@ -18,192 +34,140 @@ export class EncryptorDecryptor {
     this.#sharedAesGcmKey = sharedAesGcmKey;
   }
 
-  async encrypt(message: string): Promise<Errable<EncryptedMessage>> {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-
-    let buffer: ArrayBuffer;
+  async encrypt(message: string): Promise<Result<EncryptedMessage>> {
     try {
-      buffer = await crypto.subtle.encrypt(
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const buffer = await crypto.subtle.encrypt(
         { name: 'AES-GCM', iv },
         this.#sharedAesGcmKey,
         new TextEncoder().encode(message)
       );
+
+      return ok({
+        ciphertext: bytesToBase64(new Uint8Array(buffer)),
+        iv: bytesToBase64(iv),
+      });
     } catch (u) {
-      const err = ensureError(u);
-      return [null, Error('Failure while encrypting message', { cause: err })];
+      const cause = ensureError(u);
+      return err(Error('Failure while encrypting message', { cause }));
     }
-
-    const encryptedMessage = {
-      ciphertext: bytesToBase64(new Uint8Array(buffer)),
-      iv: bytesToBase64(iv),
-    };
-
-    return [encryptedMessage, null];
   }
 
-  async decrypt({
-    ciphertext,
-    iv,
-  }: EncryptedMessage): Promise<Errable<string>> {
-    let buffer: ArrayBuffer;
+  async decrypt({ ciphertext, iv }: EncryptedMessage): Promise<Result<string>> {
     try {
-      buffer = await crypto.subtle.decrypt(
+      const buffer = await crypto.subtle.decrypt(
         { name: 'AES-GCM', iv: base64ToBytes(iv) },
         this.#sharedAesGcmKey,
         base64ToBytes(ciphertext)
       );
+
+      const message = new TextDecoder().decode(buffer);
+      return ok(message);
     } catch (u) {
-      const err = ensureError(u);
-      return [null, Error('Failure while decrypting message', { cause: err })];
+      const cause = ensureError(u);
+      return err(Error('Failure while decrypting message', { cause }));
     }
-
-    const message = new TextDecoder().decode(buffer);
-    return [message, null];
   }
 }
 
-export function parseNotiKeyPair(obj: any): Errable<NotiKeyPair> {
-  if (typeof obj !== 'object' || obj === null) {
-    return [null, Error('Invalid object: must be a non-null object')];
-  }
-
-  if (typeof obj.type !== 'string') {
-    return [null, Error('Invalid property: "type" must be of value "X25519"')];
-  }
-
-  if (typeof obj.spki_public_key !== 'string') {
-    return [
-      null,
-      Error('Invalid property: "spki_public_key" must be a string'),
-    ];
-  }
-
-  if (typeof obj.pkcs8_private_key !== 'string') {
-    return [
-      null,
-      Error('Invalid property: "pkcs8_private_key" must be a string'),
-    ];
-  }
-
-  return [obj, null];
-}
-
-export async function keyToBase64(
-  key: CryptoKey,
-  format: 'spki' | 'pkcs8'
-): Promise<Errable<string>> {
-  let buffer: ArrayBuffer;
+export async function importX25519KeyPair({
+  publicKey,
+  privateKey,
+}: NotiKeyPair): Promise<Result<CryptoKeyPair>> {
+  let importedPrivateKey: CryptoKey;
   try {
-    buffer = await crypto.subtle.exportKey(format, key);
-  } catch (u) {
-    const err = ensureError(u);
-    return [null, Error('Failure while exporting key', { cause: err })];
-  }
-
-  const base64 = bytesToBase64(new Uint8Array(buffer));
-  return [base64, null];
-}
-
-export function base64ToBytes(str: string) {
-  const binary = atob(str);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-
-  return bytes;
-}
-
-export function bytesToBase64(bytes: Uint8Array) {
-  return btoa(String.fromCharCode(...bytes));
-}
-
-export async function importX25519KeyPair(
-  kp: NotiKeyPair
-): Promise<Errable<CryptoKeyPair>> {
-  let privateKey: CryptoKey;
-  try {
-    privateKey = await crypto.subtle.importKey(
-      'pkcs8',
-      base64ToBytes(kp.pkcs8_private_key),
+    importedPrivateKey = await crypto.subtle.importKey(
+      privateKey.format,
+      base64ToBytes(privateKey.value),
       { name: 'X25519' },
       true,
       ['deriveKey']
     );
   } catch (u) {
-    const err = ensureError(u);
-    return [null, Error('Failed to import private key', { cause: err })];
+    const cause = ensureError(u);
+    return err(Error('Failed to import private key', { cause }));
   }
 
-  let publicKey: CryptoKey;
+  let importedPublicKey: CryptoKey;
   try {
-    publicKey = await crypto.subtle.importKey(
-      'spki',
-      base64ToBytes(kp.spki_public_key),
+    importedPublicKey = await crypto.subtle.importKey(
+      publicKey.format,
+      base64ToBytes(publicKey.value),
       { name: 'X25519' },
       true,
       []
     );
   } catch (u) {
-    const err = ensureError(u);
-    return [null, Error('Failed to import public key', { cause: err })];
+    const cause = ensureError(u);
+    return err(Error('Failed to import public key', { cause }));
   }
 
-  const keyPair = { privateKey, publicKey };
-  return [keyPair, null];
+  return ok({
+    privateKey: importedPrivateKey,
+    publicKey: importedPublicKey,
+  });
 }
 
-export async function generateX25519KeyPair(): Promise<Errable<CryptoKeyPair>> {
-  let keyPair: CryptoKeyPair;
+export async function generateX25519KeyPair(): Promise<Result<CryptoKeyPair>> {
   try {
-    keyPair = (await crypto.subtle.generateKey({ name: 'X25519' }, true, [
+    const keyPair = (await crypto.subtle.generateKey({ name: 'X25519' }, true, [
       'deriveKey',
     ])) as CryptoKeyPair;
-  } catch (u) {
-    const err = ensureError(u);
-    return [null, Error('Failure while generating key pair', { cause: err })];
-  }
 
-  return [keyPair, null];
+    return ok(keyPair);
+  } catch (u) {
+    const cause = ensureError(u);
+    return err(Error('Failure while generating key pair', { cause }));
+  }
 }
 
 export async function exportX25519KeyPair(
   x25519KeyPair: CryptoKeyPair
-): Promise<Errable<NotiKeyPair>> {
-  const [privateKey, err] = await keyToBase64(
-    x25519KeyPair.privateKey,
-    'pkcs8'
-  );
-  if (err !== null) {
-    return [
-      null,
-      Error('Failed to convert private key to base64 format', { cause: err }),
-    ];
+): Promise<Result<NotiKeyPair>> {
+  let exportedPrivateKey: ArrayBuffer;
+  try {
+    exportedPrivateKey = await crypto.subtle.exportKey(
+      'pkcs8',
+      x25519KeyPair.privateKey
+    );
+  } catch (u) {
+    const cause = ensureError(u);
+    return err(
+      Error('Failed to export private key to "pkcs8" format', { cause })
+    );
   }
 
-  const [publicKey, err1] = await keyToBase64(x25519KeyPair.publicKey, 'spki');
-  if (err1 !== null) {
-    return [
-      null,
-      Error('Failed to convert public key to base64 format', { cause: err1 }),
-    ];
+  let exportedPublicKey: ArrayBuffer;
+  try {
+    exportedPublicKey = await crypto.subtle.exportKey(
+      'spki',
+      x25519KeyPair.publicKey
+    );
+  } catch (u) {
+    const cause = ensureError(u);
+    return err(
+      Error('Failed to export private key to "spki" format', { cause })
+    );
   }
 
-  const notiKeyPair: NotiKeyPair = {
-    type: 'X25519',
-    pkcs8_private_key: privateKey,
-    spki_public_key: publicKey,
-  };
-
-  return [notiKeyPair, null];
+  return ok({
+    algorithm: 'X25519',
+    publicKey: {
+      format: 'spki',
+      value: bytesToBase64(new Uint8Array(exportedPublicKey)),
+    },
+    privateKey: {
+      format: 'pkcs8',
+      value: bytesToBase64(new Uint8Array(exportedPrivateKey)),
+    },
+  });
 }
 
 export async function deriveSharedAesGcmKey(
   x25519KeyPair: CryptoKeyPair
-): Promise<Errable<CryptoKey>> {
-  let sharedKey: CryptoKey;
+): Promise<Result<CryptoKey>> {
   try {
-    sharedKey = await crypto.subtle.deriveKey(
+    const sharedKey = await crypto.subtle.deriveKey(
       {
         name: 'X25519',
         public: x25519KeyPair.publicKey,
@@ -216,23 +180,10 @@ export async function deriveSharedAesGcmKey(
       false,
       ['encrypt', 'decrypt']
     );
+
+    return ok(sharedKey);
   } catch (u) {
-    const err = ensureError(u);
-    return [null, Error('Failure while deriving shared key', { cause: err })];
+    const cause = ensureError(u);
+    return err(Error('Failure while deriving shared key', { cause }));
   }
-
-  return [sharedKey, null];
-}
-
-export async function downloadJson(obj: any, filename: string): Promise<void> {
-  const json = JSON.stringify(obj, null, 2);
-  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
