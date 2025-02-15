@@ -1,3 +1,3 @@
-# Noti chat app
+# WIP: Noti
 
-Communicate with anyone without registration or downloaded software.
+Encrypted communication without registration and downloaded app. Connect securly with anyone within 10 seconds.
