@@ -9,7 +9,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:noti": "node dist/noti/server/server.mjs",
-    "migrate": "DATABASE_URL='postgresql://user:password@localhost:5432/db' npx kysely migrate:latest"
+    "migrate": "DATABASE_URL='postgresql://user:password@localhost:5432/db' kysely migrate:latest",
+    "seed": "DATABASE_URL='postgresql://user:password@localhost:5432/db' kysely seed:run"
   },
   "private": true,
   "dependencies": {
@@ -43,6 +44,7 @@
     "@angular-devkit/build-angular": "^19.1.6",
     "@angular/cli": "^19.1.6",
     "@angular/compiler-cli": "^19.1.0",
+    "@faker-js/faker": "^9.5.0",
     "@types/express": "^4.17.17",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^18.18.0",
@@ -53,7 +55,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "kysely-ctl": "^0.11.0",
+    "kysely-ctl": "^0.11.1",
     "typescript": "~5.7.2"
   }
 }
