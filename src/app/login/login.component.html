@@ -1,0 +1,35 @@
+<div
+  class="max-w-sm border border-white rounded p-8 my-2 mx-auto flex flex-col"
+>
+  <h1 class="text-center m-1 text-5xl">Noti</h1>
+  <h2 class="text-center m-1">Sign in</h2>
+  <div
+    class="border-2 font-bold text-xs leading-5 rounded bg-red-950 text-red-300 border-red-300 my-2 p-2"
+  >
+    Error: Username should contain only alphanumeric characters.
+  </div>
+  <form>
+    <label for="username">New username:</label>
+    <input
+      type="text"
+      name="username"
+      title="username"
+      class="bg-black border border-white rounded outline-none p-1 my-1 w-full"
+      value="value"
+      autofocus
+    />
+    <button
+      type="submit"
+      class="font-bold border rounded border-white p-1 my-1 w-full"
+    >
+      Generate new identity
+    </button>
+  </form>
+  <span class="text-gray-300 mx-auto">- OR -</span>
+  <label
+    class="font-bold border rounded border-white p-1 my-1 text-center cursor-pointer"
+  >
+    <input title="Import indentity" type="file" class="hidden" accept=".json" />
+    Import indentity
+  </label>
+</div>
