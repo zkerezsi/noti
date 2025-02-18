@@ -10,8 +10,8 @@ import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolvers } from './resolvers';
-import typeDefs from './typeDefs';
+import { resolvers } from './graphql/resolvers';
+import typeDefs from './graphql/types';
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled';
 import { db } from './db';
 
